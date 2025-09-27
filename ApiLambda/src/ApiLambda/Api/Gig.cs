@@ -1,0 +1,60 @@
+using System.Text.Json.Serialization;
+
+namespace ApiLambda.Api;
+
+public record Gig
+{
+    [JsonPropertyName("id")]
+    public string? Id { get; set; }
+
+    [JsonPropertyName("act")]
+    public required string Act { get; init; }
+
+    [JsonPropertyName("fee")]
+    public decimal Fee { get; init; }
+
+    [JsonPropertyName("leaveDate")]
+    public DateTime LeaveDate { get; init; }
+
+    [JsonPropertyName("returnDate")]
+    public DateTime ReturnDate { get; init; }
+
+    [JsonPropertyName("description")]
+    public required string Description { get; init; }
+
+    [JsonPropertyName("venue")]
+    public required string Venue { get; init; }
+
+    [JsonPropertyName("postcode")]
+    public required string Postcode { get; init; }
+
+    [JsonPropertyName("instrument")]
+    public required string Instrument { get; init; }
+
+    [JsonPropertyName("calendarSync")]
+    public bool CalendarSync { get; init; }
+
+    [JsonPropertyName("isCash")]
+    public bool? IsCash { get; init; }
+
+    [JsonPropertyName("datePaid")]
+    public DateOnly? DatePaid { get; init; }
+
+    [JsonPropertyName("expenses")]
+    public decimal? Expenses { get; init; }
+
+    [JsonPropertyName("mileage")]
+    public decimal? Mileage { get; init; }
+
+    [JsonPropertyName("isComplete")]
+    public bool? IsComplete { get; init; }
+
+    [JsonPropertyName("gigDate")]
+    public DateOnly? GigDate { get; init; }
+
+    [JsonPropertyName("isFuture")]
+    public bool? IsFuture { get; init; }
+
+    [JsonPropertyName("isPaid")]
+    public bool? IsPaid { get; init; }
+}
