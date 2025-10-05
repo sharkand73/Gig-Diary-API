@@ -6,28 +6,40 @@ namespace ApiLambda.Repositories;
 
 public class GigRepository(IDynamoDBContext dynamoDbContext, ILambdaLogger logger) : IGigRepository
 {
-    public Task<Gig?> GetByIdAsync(string id)
+    public async Task<Gig?> GetByIdAsync(string id)
     {
-        throw new NotImplementedException();
+        return await dynamoDbContext.LoadAsync<Gig>(id);
     }
 
-    public Task<IEnumerable<Gig>> GetAllAsync()
+    public async Task<IEnumerable<Gig>> GetAllAsync()
     {
-        throw new NotImplementedException();
+        var scan = dynamoDbContext.ScanAsync<Gig>(new List<ScanCondition>());
+        return await scan.GetRemainingAsync();
     }
 
-    public Task<Gig> CreateAsync(Gig gig)
+    public async Task<Gig> CreateAsync(Gig gig)
     {
-        throw new NotImplementedException();
+        gig.Id = Guid.NewGuid().ToString();
+        await dynamoDbContext.SaveAsync(gig);
+        return gig;
     }
 
-    public Task<Gig?> UpdateAsync(string id, Gig gig)
+    public async Task<Gig?> UpdateAsync(string id, Gig gig)
     {
-        throw new NotImplementedException();
+        var existing = await GetByIdAsync(id);
+        if (existing == null) return null;
+        
+        gig.Id = id;
+        await dynamoDbContext.SaveAsync(gig);
+        return gig;
     }
 
-    public Task<bool> DeleteAsync(string id)
+    public async Task<bool> DeleteAsync(string id)
     {
-        throw new NotImplementedException();
+        var existing = await GetByIdAsync(id);
+        if (existing == null) return false;
+        
+        await dynamoDbContext.DeleteAsync<Gig>(id);
+        return true;
     }
 }
