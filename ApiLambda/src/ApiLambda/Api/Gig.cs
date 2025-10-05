@@ -1,9 +1,12 @@
 using System.Text.Json.Serialization;
+using Amazon.DynamoDBv2.DataModel;
 
 namespace ApiLambda.Api;
 
+[DynamoDBTable("Gigs")]
 public record Gig
 {
+    [DynamoDBHashKey("pk")]
     [JsonPropertyName("id")]
     public string? Id { get; set; }
 
