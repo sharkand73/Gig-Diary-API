@@ -6,3 +6,6 @@ riderModule.iml
 .idea/
 *.iml
 .aws-sam/
+.DS_Store
+**/.DS_Store
+
