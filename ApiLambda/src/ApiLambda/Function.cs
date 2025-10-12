@@ -15,7 +15,11 @@ var dynamoDbContext = new DynamoDBContextBuilder()
 
 await LambdaBootstrapBuilder.Create(async (Stream stream, ILambdaContext context) =>
     {
-        var request = await JsonSerializer.DeserializeAsync<APIGatewayProxyRequest>(stream)
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+        var request = await JsonSerializer.DeserializeAsync<APIGatewayProxyRequest>(stream, options)
             ?? throw new ArgumentNullException(nameof(stream));
         return await Handler(request, context);
     }, new DefaultLambdaJsonSerializer())
@@ -26,26 +30,35 @@ return;
 
 async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILambdaContext context)
 {
-    var repository = new GigRepository(dynamoDbContext, context.Logger);
+    var logger = context.Logger;
+    var repository = new GigRepository(dynamoDbContext, logger);
+    
+
     
     try
     {
+        // Check if path starts with /gigs
+        if (!request.Path.StartsWith("/gigs"))
+        {
+            return new APIGatewayProxyResponse { StatusCode = 404, Body = "Not found" };
+        }
+
         return request.HttpMethod.ToUpper() switch
         {
-            "GET" when request.PathParameters?.ContainsKey("id") == true => 
+            "GET" when request.PathParameters?.ContainsKey("id") == true =>
                 await GetGig(repository, request.PathParameters["id"]),
             "GET" => await GetAllGigs(repository),
             "POST" => await CreateGig(repository, request.Body),
-            "PUT" when request.PathParameters?.ContainsKey("id") == true => 
+            "PUT" when request.PathParameters?.ContainsKey("id") == true =>
                 await UpdateGig(repository, request.PathParameters["id"], request.Body),
-            "DELETE" when request.PathParameters?.ContainsKey("id") == true => 
+            "DELETE" when request.PathParameters?.ContainsKey("id") == true =>
                 await DeleteGig(repository, request.PathParameters["id"]),
             _ => new APIGatewayProxyResponse { StatusCode = 405, Body = "Method not allowed" }
         };
     }
     catch (Exception ex)
     {
-        context.Logger.LogError($"Error: {ex.Message}");
+        context.Logger.LogError($"Error: {ex}");
         return new APIGatewayProxyResponse { StatusCode = 500, Body = "Internal server error" };
     }
 }
