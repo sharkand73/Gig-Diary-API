@@ -37,22 +37,28 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
     
     try
     {
+        // Debug logging
+        logger.LogInformation($"Path: {request.Path}");
+        logger.LogInformation($"PathParameters: {JsonSerializer.Serialize(request.PathParameters)}");
+        
         // Check if path starts with /gigs
         if (!request.Path.StartsWith("/gigs"))
         {
             return new APIGatewayProxyResponse { StatusCode = 404, Body = "Not found" };
         }
+        
+        // Extract ID from path manually
+        var pathParts = request.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var hasId = pathParts.Length > 1;
+        var id = hasId ? pathParts[1] : null;
 
         return request.HttpMethod.ToUpper() switch
         {
-            "GET" when request.PathParameters?.ContainsKey("id") == true =>
-                await GetGig(repository, request.PathParameters["id"]),
+            "GET" when hasId => await GetGig(repository, id),
             "GET" => await GetAllGigs(repository),
             "POST" => await CreateGig(repository, request.Body),
-            "PUT" when request.PathParameters?.ContainsKey("id") == true =>
-                await UpdateGig(repository, request.PathParameters["id"], request.Body),
-            "DELETE" when request.PathParameters?.ContainsKey("id") == true =>
-                await DeleteGig(repository, request.PathParameters["id"]),
+            "PUT" when hasId => await UpdateGig(repository, id, request.Body),
+            "DELETE" when hasId => await DeleteGig(repository, id),
             _ => new APIGatewayProxyResponse { StatusCode = 405, Body = "Method not allowed" }
         };
     }

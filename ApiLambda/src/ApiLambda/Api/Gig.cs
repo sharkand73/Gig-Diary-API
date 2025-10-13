@@ -35,7 +35,7 @@ public record Gig
     public required string Instrument { get; init; }
 
     [JsonPropertyName("calendarSync")]
-    public bool CalendarSync { get; init; }
+    public required bool CalendarSync { get; init; }
 
     [JsonPropertyName("isCash")]
     public bool? IsCash { get; init; }
@@ -50,14 +50,16 @@ public record Gig
     public decimal? Mileage { get; init; }
 
     [JsonPropertyName("isComplete")]
-    public bool? IsComplete { get; init; }
+    public bool IsComplete { get; init; }
 
+    [DynamoDBIgnore]
     [JsonPropertyName("gigDate")]
-    public DateOnly? GigDate { get; init; }
+    public DateOnly GigDate => DateOnly.FromDateTime(LeaveDate);
 
-    [JsonPropertyName("isFuture")]
-    public bool? IsFuture { get; init; }
+    [DynamoDBIgnore]
+    [JsonPropertyName("isFuture")] public bool? IsFuture => LeaveDate > DateTime.Now;
 
+    [DynamoDBIgnore]
     [JsonPropertyName("isPaid")]
-    public bool? IsPaid { get; init; }
+    public bool IsPaid => DatePaid.HasValue && DatePaid <= DateOnly.FromDateTime(DateTime.Today);
 }
