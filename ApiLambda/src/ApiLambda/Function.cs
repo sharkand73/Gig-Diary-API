@@ -33,14 +33,8 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
     var logger = context.Logger;
     var repository = new GigRepository(dynamoDbContext, logger);
     
-
-    
     try
     {
-        // Debug logging
-        logger.LogInformation($"Path: {request.Path}");
-        logger.LogInformation($"PathParameters: {JsonSerializer.Serialize(request.PathParameters)}");
-        
         // Check if path starts with /gigs
         if (!request.Path.StartsWith("/gigs"))
         {
@@ -54,18 +48,19 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
 
         return request.HttpMethod.ToUpper() switch
         {
+            "OPTIONS" => CreateCorsResponse(200, ""),
             "GET" when hasId => await GetGig(repository, id),
             "GET" => await GetAllGigs(repository),
             "POST" => await CreateGig(repository, request.Body),
             "PUT" when hasId => await UpdateGig(repository, id, request.Body),
             "DELETE" when hasId => await DeleteGig(repository, id),
-            _ => new APIGatewayProxyResponse { StatusCode = 405, Body = "Method not allowed" }
+            _ => CreateCorsResponse(405, "Method not allowed")
         };
     }
     catch (Exception ex)
     {
         context.Logger.LogError($"Error: {ex}");
-        return new APIGatewayProxyResponse { StatusCode = 500, Body = "Internal server error" };
+        return CreateCorsResponse(500, "Internal server error");
     }
 }
 
@@ -73,21 +68,21 @@ async Task<APIGatewayProxyResponse> GetGig(IGigRepository repository, string id)
 {
     var gig = await repository.GetByIdAsync(id);
     return gig == null 
-        ? new APIGatewayProxyResponse { StatusCode = 404, Body = "Not found" }
-        : new APIGatewayProxyResponse { StatusCode = 200, Body = JsonSerializer.Serialize(gig) };
+        ? CreateCorsResponse(404, "Not found")
+        : CreateCorsResponse(200, JsonSerializer.Serialize(gig));
 }
 
 async Task<APIGatewayProxyResponse> GetAllGigs(IGigRepository repository)
 {
     var gigs = await repository.GetAllAsync();
-    return new APIGatewayProxyResponse { StatusCode = 200, Body = JsonSerializer.Serialize(gigs) };
+    return CreateCorsResponse(200, JsonSerializer.Serialize(gigs));
 }
 
 async Task<APIGatewayProxyResponse> CreateGig(IGigRepository repository, string body)
 {
     var gig = JsonSerializer.Deserialize<Gig>(body);
     var created = await repository.CreateAsync(gig);
-    return new APIGatewayProxyResponse { StatusCode = 201, Body = JsonSerializer.Serialize(created) };
+    return CreateCorsResponse(201, JsonSerializer.Serialize(created));
 }
 
 async Task<APIGatewayProxyResponse> UpdateGig(IGigRepository repository, string id, string body)
@@ -95,12 +90,28 @@ async Task<APIGatewayProxyResponse> UpdateGig(IGigRepository repository, string 
     var gig = JsonSerializer.Deserialize<Gig>(body);
     var updated = await repository.UpdateAsync(id, gig);
     return updated == null
-        ? new APIGatewayProxyResponse { StatusCode = 404, Body = "Not found" }
-        : new APIGatewayProxyResponse { StatusCode = 200, Body = JsonSerializer.Serialize(updated) };
+        ? CreateCorsResponse(404, "Not found")
+        : CreateCorsResponse(200, JsonSerializer.Serialize(updated));
 }
 
 async Task<APIGatewayProxyResponse> DeleteGig(IGigRepository repository, string id)
 {
     var deleted = await repository.DeleteAsync(id);
-    return new APIGatewayProxyResponse { StatusCode = deleted ? 204 : 404 };
+    return CreateCorsResponse(deleted ? 204 : 404, "");
+}
+
+static APIGatewayProxyResponse CreateCorsResponse(int statusCode, string body)
+{
+    return new APIGatewayProxyResponse
+    {
+        StatusCode = statusCode,
+        Body = body,
+        Headers = new Dictionary<string, string>
+        {
+            { "Access-Control-Allow-Origin", "*" },
+            { "Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token" },
+            { "Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS" },
+            { "Content-Type", "application/json" }
+        }
+    };
 }
