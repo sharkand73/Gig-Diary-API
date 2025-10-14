@@ -49,11 +49,11 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
         return request.HttpMethod.ToUpper() switch
         {
             "OPTIONS" => CreateCorsResponse(200, ""),
-            "GET" when hasId => await GetGig(repository, id),
+            "GET" when hasId => await GetGig(repository, id!),
             "GET" => await GetAllGigs(repository),
             "POST" => await CreateGig(repository, request.Body),
-            "PUT" when hasId => await UpdateGig(repository, id, request.Body),
-            "DELETE" when hasId => await DeleteGig(repository, id),
+            "PUT" when hasId => await UpdateGig(repository, id!, request.Body),
+            "DELETE" when hasId => await DeleteGig(repository, id!),
             _ => CreateCorsResponse(405, "Method not allowed")
         };
     }
@@ -80,14 +80,16 @@ async Task<APIGatewayProxyResponse> GetAllGigs(IGigRepository repository)
 
 async Task<APIGatewayProxyResponse> CreateGig(IGigRepository repository, string body)
 {
-    var gig = JsonSerializer.Deserialize<Gig>(body);
+    var gig = JsonSerializer.Deserialize<Gig>(body)
+        ?? throw new FormatException("Invalid JSON");
     var created = await repository.CreateAsync(gig);
     return CreateCorsResponse(201, JsonSerializer.Serialize(created));
 }
 
 async Task<APIGatewayProxyResponse> UpdateGig(IGigRepository repository, string id, string body)
 {
-    var gig = JsonSerializer.Deserialize<Gig>(body);
+    var gig = JsonSerializer.Deserialize<Gig>(body)
+        ?? throw new FormatException("Invalid JSON");
     var updated = await repository.UpdateAsync(id, gig);
     return updated == null
         ? CreateCorsResponse(404, "Not found")
