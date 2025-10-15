@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.Model;
 
 namespace ApiLambda.Api;
 
@@ -30,12 +31,21 @@ public record Gig
 
     [JsonPropertyName("postcode")]
     public required string Postcode { get; init; }
+    
+    [JsonPropertyName("bookingDate")]
+    public required DateOnly BookingDate { get; init; }
+    
+    [JsonPropertyName("contact")]
+    public required string Contact { get; init; }
 
     [JsonPropertyName("instrument")]
     public required string Instrument { get; init; }
 
     [JsonPropertyName("calendarSync")]
     public required bool CalendarSync { get; init; }
+
+    [JsonPropertyName("calendarId")]
+    public string? CalendarId { get; init; }
 
     [JsonPropertyName("isCash")]
     public bool? IsCash { get; init; }
