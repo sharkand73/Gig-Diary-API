@@ -31,7 +31,7 @@ return;
 async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILambdaContext context)
 {
     var logger = context.Logger;
-    var repository = new GigRepository(dynamoDbContext, logger);
+    var repository = new GigRepository(dynamoDbContext);
     
     try
     {

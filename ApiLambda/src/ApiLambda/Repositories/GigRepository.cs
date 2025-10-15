@@ -1,10 +1,9 @@
 using Amazon.DynamoDBv2.DataModel;
-using Amazon.Lambda.Core;
 using ApiLambda.Api;
 
 namespace ApiLambda.Repositories;
 
-public class GigRepository(IDynamoDBContext dynamoDbContext, ILambdaLogger logger) : IGigRepository
+public class GigRepository(IDynamoDBContext dynamoDbContext) : IGigRepository
 {
     public async Task<Gig?> GetByIdAsync(string id)
     {
