@@ -14,7 +14,8 @@ public class GigRepository(IDynamoDBContext dynamoDbContext, ILambdaLogger logge
     public async Task<IEnumerable<Gig>> GetAllAsync()
     {
         var scan = dynamoDbContext.ScanAsync<Gig>(new List<ScanCondition>());
-        return await scan.GetRemainingAsync();
+        var gigs = await scan.GetRemainingAsync();
+        return gigs.OrderByDescending(g => g.LeaveDate);
     }
 
     public async Task<Gig> CreateAsync(Gig gig)
