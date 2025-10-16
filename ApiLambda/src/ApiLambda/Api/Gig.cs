@@ -72,4 +72,7 @@ public record Gig
     [DynamoDBIgnore]
     [JsonPropertyName("isPaid")]
     public bool IsPaid => DatePaid.HasValue && DatePaid <= DateOnly.FromDateTime(DateTime.Today);
+
+    [DynamoDBIgnore] [JsonPropertyName("isNextGig")]
+    public bool IsNextGig { get; set; }
 }

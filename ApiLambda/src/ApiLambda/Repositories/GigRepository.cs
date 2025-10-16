@@ -14,7 +14,13 @@ public class GigRepository(IDynamoDBContext dynamoDbContext) : IGigRepository
     {
         var scan = dynamoDbContext.ScanAsync<Gig>(new List<ScanCondition>());
         var gigs = await scan.GetRemainingAsync();
-        return gigs.OrderByDescending(g => g.LeaveDate);
+        var orderedGigs = gigs.OrderByDescending(g => g.LeaveDate).ToList();
+        var nextGig = orderedGigs.LastOrDefault(g => g.LeaveDate > DateTime.Now);
+        if (nextGig != null)
+        {
+            nextGig.IsNextGig = true;
+        }
+        return orderedGigs;
     }
 
     public async Task<Gig> CreateAsync(Gig gig)
