@@ -7,6 +7,7 @@ using Amazon.DynamoDBv2.DataModel;
 using ApiLambda.Repositories;
 using System.Text.Json;
 using ApiLambda.Api;
+using ApiLambda.Services;
 
 // Configure services
 var dynamoDbContext = new DynamoDBContextBuilder()
@@ -32,6 +33,7 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
 {
     var logger = context.Logger;
     var repository = new GigRepository(dynamoDbContext);
+    var apiService = new ApiService(repository);
     
     try
     {
@@ -48,72 +50,19 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
 
         return request.HttpMethod.ToUpper() switch
         {
-            "OPTIONS" => CreateCorsResponse(200, ""),
-            "GET" when hasId => await GetGig(repository, id!),
-            "GET" => await GetAllGigs(repository),
-            "POST" => await CreateGig(repository, request.Body),
-            "PUT" when hasId => await UpdateGig(repository, id!, request.Body),
-            "DELETE" when hasId => await DeleteGig(repository, id!),
-            _ => CreateCorsResponse(405, "Method not allowed")
+            "OPTIONS" => apiService.CreateCorsResponse(200, ""),
+            "GET" when hasId => await apiService.GetGigAsync(id!),
+            "GET" => await apiService.GetAllGigsAsync(),
+            "POST" => await apiService.CreateGigAsync(request.Body),
+            "PUT" when hasId => await apiService.UpdateGigAsync(id!, request.Body),
+            "DELETE" when hasId => await apiService.DeleteGigAsync(id!),
+            _ => apiService.CreateCorsResponse(405, "Method not allowed")
         };
     }
     catch (Exception ex)
     {
-        context.Logger.LogError($"Error: {ex}");
-        return CreateCorsResponse(500, "Internal server error");
+        logger.LogError($"Error: {ex}");
+        return apiService.CreateCorsResponse(500, "Internal server error");
     }
 }
 
-async Task<APIGatewayProxyResponse> GetGig(IGigRepository repository, string id)
-{
-    var gig = await repository.GetByIdAsync(id);
-    return gig == null 
-        ? CreateCorsResponse(404, "Not found")
-        : CreateCorsResponse(200, JsonSerializer.Serialize(gig));
-}
-
-async Task<APIGatewayProxyResponse> GetAllGigs(IGigRepository repository)
-{
-    var gigs = await repository.GetAllAsync();
-    return CreateCorsResponse(200, JsonSerializer.Serialize(gigs));
-}
-
-async Task<APIGatewayProxyResponse> CreateGig(IGigRepository repository, string body)
-{
-    var gig = JsonSerializer.Deserialize<Gig>(body)
-        ?? throw new FormatException("Invalid JSON");
-    var created = await repository.CreateAsync(gig);
-    return CreateCorsResponse(201, JsonSerializer.Serialize(created));
-}
-
-async Task<APIGatewayProxyResponse> UpdateGig(IGigRepository repository, string id, string body)
-{
-    var gig = JsonSerializer.Deserialize<Gig>(body)
-        ?? throw new FormatException("Invalid JSON");
-    var updated = await repository.UpdateAsync(id, gig);
-    return updated == null
-        ? CreateCorsResponse(404, "Not found")
-        : CreateCorsResponse(200, JsonSerializer.Serialize(updated));
-}
-
-async Task<APIGatewayProxyResponse> DeleteGig(IGigRepository repository, string id)
-{
-    var deleted = await repository.DeleteAsync(id);
-    return CreateCorsResponse(deleted ? 204 : 404, "");
-}
-
-static APIGatewayProxyResponse CreateCorsResponse(int statusCode, string body)
-{
-    return new APIGatewayProxyResponse
-    {
-        StatusCode = statusCode,
-        Body = body,
-        Headers = new Dictionary<string, string>
-        {
-            { "Access-Control-Allow-Origin", "*" },
-            { "Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token" },
-            { "Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS" },
-            { "Content-Type", "application/json" }
-        }
-    };
-}
