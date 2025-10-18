@@ -2,9 +2,9 @@ using ApiLambda.Api;
 
 namespace ApiLambda.Services;
 
-public interface ICalendarService
+public interface IGigCalendarService
 {
-    Task CreatEvent(Gig gig);
+    Task<string> CreatEvent(Gig gig);
     Task UpdateEvent(Gig gig);
-    Task DeleteEvent(Gig gig);
+    Task DeleteEvent(string? calendarId);
 }

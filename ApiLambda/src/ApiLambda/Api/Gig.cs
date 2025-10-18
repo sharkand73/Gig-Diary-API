@@ -45,7 +45,7 @@ public record Gig
     public required bool CalendarSync { get; init; }
 
     [JsonPropertyName("calendarId")]
-    public string? CalendarId { get; init; }
+    public string? CalendarId { get; set; }
 
     [JsonPropertyName("isCash")]
     public bool? IsCash { get; init; }
