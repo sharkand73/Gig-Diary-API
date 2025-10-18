@@ -1,13 +1,17 @@
+using System.Text.Json;
+using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
-using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
+using Amazon.SimpleSystemsManagement;
+using Amazon.SimpleSystemsManagement.Model;
 using ApiLambda.Repositories;
-using System.Text.Json;
-using ApiLambda.Api;
 using ApiLambda.Services;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Calendar.v3;
+using Google.Apis.Services;
 
 // Configure services
 var dynamoDbContext = new DynamoDBContextBuilder()
@@ -33,7 +37,8 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
 {
     var logger = context.Logger;
     var repository = new GigRepository(dynamoDbContext);
-    var apiService = new ApiService(repository);
+    var calendarService = new GigCalendarService(await GetGoogleClient());
+    var apiService = new ApiService(repository, calendarService, logger);
     
     try
     {
@@ -64,5 +69,31 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
         logger.LogError($"Error: {ex}");
         return apiService.CreateCorsResponse(500, "Internal server error");
     }
+}
+
+async Task<CalendarService> GetGoogleClient()
+{
+    var credentialJson = await GetCredentialJson();
+    var credential = GoogleCredential
+        .FromJson(credentialJson)
+        .CreateScoped(CalendarService.Scope.Calendar);
+
+    return new CalendarService(new BaseClientService.Initializer()
+    {
+        HttpClientInitializer = credential
+    });
+}
+
+async Task<string> GetCredentialJson()
+{
+    var request = new GetParameterRequest()
+    {
+        Name = "GigDiaryGoogleConfig",
+        WithDecryption = true
+    };
+    using var client = new AmazonSimpleSystemsManagementClient();
+    var response = await client.GetParameterAsync(request);
+    return response.Parameter.Value
+        ?? throw new FormatException("GigDiaryGoogleConfig was null");
 }
 
