@@ -38,7 +38,8 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
     var logger = context.Logger;
     var repository = new GigRepository(dynamoDbContext);
     var calendarService = new GigCalendarService(await GetGoogleClient());
-    var apiService = new ApiService(repository, calendarService, logger);
+    var gigService = new GigService(repository, calendarService, logger);
+    var apiService = new ApiService(gigService, logger);
     
     try
     {
