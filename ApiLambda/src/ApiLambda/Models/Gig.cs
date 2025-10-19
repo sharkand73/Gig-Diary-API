@@ -1,8 +1,7 @@
 using System.Text.Json.Serialization;
 using Amazon.DynamoDBv2.DataModel;
-using Amazon.DynamoDBv2.Model;
 
-namespace ApiLambda.Api;
+namespace ApiLambda.Models;
 
 [DynamoDBTable("Gigs")]
 public record Gig

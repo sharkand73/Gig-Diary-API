@@ -1,5 +1,5 @@
 using Amazon.Lambda.Core;
-using ApiLambda.Api;
+using ApiLambda.Models;
 using ApiLambda.Repositories;
 
 namespace ApiLambda.Services;

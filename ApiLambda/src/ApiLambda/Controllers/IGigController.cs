@@ -2,7 +2,7 @@ using Amazon.Lambda.APIGatewayEvents;
 
 namespace ApiLambda.Controllers;
 
-public interface IApiService
+public interface IGigController
 {
     Task<APIGatewayProxyResponse> GetAllGigsAsync();
     Task<APIGatewayProxyResponse> GetGigAsync(string id);

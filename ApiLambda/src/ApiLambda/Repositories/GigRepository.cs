@@ -1,5 +1,5 @@
 using Amazon.DynamoDBv2.DataModel;
-using ApiLambda.Api;
+using ApiLambda.Models;
 
 namespace ApiLambda.Repositories;
 

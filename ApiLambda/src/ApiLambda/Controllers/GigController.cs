@@ -6,8 +6,8 @@ using ApiLambda.Services;
 
 namespace ApiLambda.Controllers;
 
-public class ApiService(IGigService gigService, 
-    ILambdaLogger logger) : IApiService
+public class GigController(IGigService gigService, 
+    ILambdaLogger logger) : IGigController
 {
     public async Task<APIGatewayProxyResponse> GetGigAsync(string id)
     {

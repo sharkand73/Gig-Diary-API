@@ -7,6 +7,7 @@ using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using Amazon.SimpleSystemsManagement;
 using Amazon.SimpleSystemsManagement.Model;
+using ApiLambda.Controllers;
 using ApiLambda.Repositories;
 using ApiLambda.Services;
 using Google.Apis.Auth.OAuth2;
@@ -39,7 +40,7 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
     var repository = new GigRepository(dynamoDbContext);
     var calendarService = new GigCalendarService(await GetGoogleClient());
     var gigService = new GigService(repository, calendarService, logger);
-    var apiService = new ApiService(gigService, logger);
+    var gigController = new GigController(gigService, logger);
     
     try
     {
@@ -56,19 +57,19 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
 
         return request.HttpMethod.ToUpper() switch
         {
-            "OPTIONS" => apiService.CreateCorsResponse(200, ""),
-            "GET" when hasId => await apiService.GetGigAsync(id!),
-            "GET" => await apiService.GetAllGigsAsync(),
-            "POST" => await apiService.CreateGigAsync(request.Body),
-            "PUT" when hasId => await apiService.UpdateGigAsync(id!, request.Body),
-            "DELETE" when hasId => await apiService.DeleteGigAsync(id!),
-            _ => apiService.CreateCorsResponse(405, "Method not allowed")
+            "OPTIONS" => gigController.CreateCorsResponse(200, ""),
+            "GET" when hasId => await gigController.GetGigAsync(id!),
+            "GET" => await gigController.GetAllGigsAsync(),
+            "POST" => await gigController.CreateGigAsync(request.Body),
+            "PUT" when hasId => await gigController.UpdateGigAsync(id!, request.Body),
+            "DELETE" when hasId => await gigController.DeleteGigAsync(id!),
+            _ => gigController.CreateCorsResponse(405, "Method not allowed")
         };
     }
     catch (Exception ex)
     {
         logger.LogError($"Error: {ex}");
-        return apiService.CreateCorsResponse(500, "Internal server error");
+        return gigController.CreateCorsResponse(500, "Internal server error");
     }
 }
 

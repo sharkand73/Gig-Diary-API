@@ -1,4 +1,4 @@
-using ApiLambda.Api;
+using ApiLambda.Models;
 using Google.Apis.Calendar.v3;
 using Google.Apis.Calendar.v3.Data;
 

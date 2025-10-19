@@ -1,4 +1,4 @@
-using ApiLambda.Api;
+using ApiLambda.Models;
 
 namespace ApiLambda.Services;
 
