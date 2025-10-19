@@ -56,6 +56,12 @@ public class ApiService(IGigRepository repository,
         try
         {
             logger.LogInformation("Updating Gig in calendar");
+            if (gig.CalendarId == null)
+            {
+                gig.CalendarId = await calendarService.CreatEvent(gig);
+                updated = await repository.UpdateAsync(id, gig);
+                return CreateCorsResponse(200, JsonSerializer.Serialize(updated));
+            }
             await calendarService.UpdateEvent(gig);
         }
         catch (Exception ex)
