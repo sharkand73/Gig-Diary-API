@@ -1,9 +1,10 @@
 using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
-using ApiLambda.Api;
+using ApiLambda.Models;
+using ApiLambda.Services;
 
-namespace ApiLambda.Services;
+namespace ApiLambda.Controllers;
 
 public class ApiService(IGigService gigService, 
     ILambdaLogger logger) : IApiService

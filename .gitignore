@@ -8,4 +8,4 @@ riderModule.iml
 .aws-sam/
 .DS_Store
 **/.DS_Store
-
+ApiLambda/src/ApiLambda/Constants.cs

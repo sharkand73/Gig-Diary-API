@@ -1,7 +1,6 @@
 using Amazon.Lambda.APIGatewayEvents;
-using ApiLambda.Api;
 
-namespace ApiLambda.Services;
+namespace ApiLambda.Controllers;
 
 public interface IApiService
 {
