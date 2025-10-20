@@ -7,8 +7,7 @@ namespace ApiLambda.Services;
 public class GigCalendarService(CalendarService client) : IGigCalendarService
 {
     private const string CalendarName = Constants.CalendarName;
-    private const string Timezone = "Europe/London";
-
+    
     public async Task<string> CreatEvent(Gig gig)
     {
         var newEvent = new Event()
@@ -16,8 +15,8 @@ public class GigCalendarService(CalendarService client) : IGigCalendarService
             Summary = gig.Act,
             Location = gig.Venue,
             Description = gig.Description,
-            Start = new EventDateTime() { DateTimeDateTimeOffset = gig.LeaveDate },
-            End = new EventDateTime() { DateTimeDateTimeOffset = gig.ReturnDate }
+            Start = new EventDateTime() { DateTimeDateTimeOffset = new DateTimeOffset(gig.LeaveDate, TimeSpan.Zero) },
+            End = new EventDateTime() { DateTimeDateTimeOffset = new DateTimeOffset(gig.ReturnDate, TimeSpan.Zero) }
         };
         var returnEvent = await client.Events.Insert(newEvent, CalendarName).ExecuteAsync();
         return returnEvent?.Id
@@ -31,8 +30,8 @@ public class GigCalendarService(CalendarService client) : IGigCalendarService
             Summary = gig.Act,
             Location = gig.Venue,
             Description = gig.Description,
-            Start = new EventDateTime() { DateTimeDateTimeOffset = gig.LeaveDate },
-            End = new EventDateTime() { DateTimeDateTimeOffset = gig.ReturnDate }
+            Start = new EventDateTime() { DateTimeDateTimeOffset = new DateTimeOffset(gig.LeaveDate, TimeSpan.Zero) },
+            End = new EventDateTime() { DateTimeDateTimeOffset = new DateTimeOffset(gig.ReturnDate, TimeSpan.Zero) }
         };
         await client.Events.Update(newEvent, CalendarName, gig.CalendarId).ExecuteAsync();
     }

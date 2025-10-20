@@ -16,30 +16,11 @@ public record Gig
     [JsonPropertyName("fee")]
     public decimal Fee { get; init; }
 
-    [DynamoDBIgnore]
-    [JsonIgnore]
-    public DateTimeOffset LeaveDate { get; private init; }
-
-    // For DynamoDB storage and JSON serialization
-    [DynamoDBProperty("leaveDate")]
     [JsonPropertyName("leaveDate")]
-    public string LeaveDateString 
-    { 
-        get => LeaveDate.ToString("O"); // ISO 8601 format
-        init => LeaveDate = DateTimeOffset.Parse(value);
-    }
-    
-    [DynamoDBIgnore]
-    [JsonIgnore]
-    public DateTimeOffset ReturnDate { get; private init;  }
+    public DateTime LeaveDate { get; init; }
 
-    [DynamoDBProperty("returnDate")]
     [JsonPropertyName("returnDate")]
-    public string ReturnDateString 
-    { 
-        get => ReturnDate.ToString("O");
-        init => ReturnDate = DateTimeOffset.Parse(value);
-    }
+    public DateTime ReturnDate { get; init; }
 
     [JsonPropertyName("description")]
     public required string Description { get; init; }
@@ -82,10 +63,10 @@ public record Gig
 
     [DynamoDBIgnore]
     [JsonPropertyName("gigDate")]
-    public DateOnly GigDate => DateOnly.FromDateTime(LeaveDate.DateTime);
+    public DateOnly GigDate => DateOnly.FromDateTime(LeaveDate);
 
     [DynamoDBIgnore]
-    [JsonPropertyName("isFuture")] public bool? IsFuture => LeaveDate > DateTimeOffset.Now;
+    [JsonPropertyName("isFuture")] public bool? IsFuture => LeaveDate > DateTime.Now;
 
     [DynamoDBIgnore]
     [JsonPropertyName("isPaid")]
