@@ -44,7 +44,10 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
     
     try
     {
-        // Check if path starts with /gigs
+        if (request.Path.StartsWith("/mappings"))
+        {
+            return await gigController.GetMappingsAsync();
+        }
         if (!request.Path.StartsWith("/gigs"))
         {
             return new APIGatewayProxyResponse { StatusCode = 404, Body = "Not found" };

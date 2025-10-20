@@ -72,4 +72,34 @@ public class GigService(IGigRepository repository,
         }
         return true;
     }
+
+    public async Task<Mappings> GetMappings()
+    {
+        var allGigs = (await repository.GetAllAsync()).ToList();
+        var postCodes = allGigs
+            .Where(g => !string.IsNullOrEmpty(g.Venue) && !string.IsNullOrEmpty(g.Postcode))
+            .GroupBy(g => g.Venue.Trim())
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().Postcode
+            );
+
+        var contacts = allGigs
+            .Where(g => !string.IsNullOrEmpty(g.Act) && !string.IsNullOrEmpty(g.Contact))
+            .GroupBy(g => g.Act.Trim())
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().Contact
+            );
+        
+        var instruments = allGigs
+            .Where(g => !string.IsNullOrEmpty(g.Act))
+            .GroupBy(g => g.Act.Trim())
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().Instrument
+            );
+
+        return new Mappings(postCodes, contacts, instruments);
+    }
 }

@@ -53,7 +53,14 @@ public class GigController(IGigService gigService,
             ? CreateCorsResponse(404, "Not found") 
             : CreateCorsResponse(204, "");
     }
-    
+
+    public async Task<APIGatewayProxyResponse> GetMappingsAsync()
+    {
+        logger.LogInformation("GET MAPPINGS");
+        var mappings = await gigService.GetMappings();
+        return CreateCorsResponse(200, JsonSerializer.Serialize(mappings));
+    }
+
     public APIGatewayProxyResponse CreateCorsResponse(int statusCode, string body)
     {
         return new APIGatewayProxyResponse

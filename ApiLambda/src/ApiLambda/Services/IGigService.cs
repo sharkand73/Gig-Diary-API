@@ -9,4 +9,5 @@ public interface IGigService
     Task<Gig> CreateGig(Gig gig);
     Task<Gig?> UpdateGig(string id, Gig gig);
     Task<bool> DeleteGig(string id);
+    Task<Mappings> GetMappings();
 }
