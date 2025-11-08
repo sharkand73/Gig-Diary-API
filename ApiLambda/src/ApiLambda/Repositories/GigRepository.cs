@@ -1,4 +1,5 @@
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 using ApiLambda.Models;
 
 namespace ApiLambda.Repositories;
@@ -22,7 +23,22 @@ public class GigRepository(IDynamoDBContext dynamoDbContext) : IGigRepository
         }
         return orderedGigs;
     }
+    
+    public async Task<List<Gig>> GetRange(DateOnly startDate, DateOnly endDate)
+    {
+        var startDateString = startDate.ToString("yyyy-MM-dd");
+        var endDateString = endDate.ToString("yyyy-MM-dd");
 
+        var filter = new ScanFilter();
+        filter.AddCondition("LeaveDate", ScanOperator.Between, startDateString, endDateString);
+
+        return await dynamoDbContext.FromScanAsync<Gig>(new ScanOperationConfig
+        {
+            Filter = filter,
+            IndexName = "LeaveDate-Index"
+        }).GetRemainingAsync();
+    }
+    
     public async Task<Gig> CreateAsync(Gig gig)
     {
         gig.Id = Guid.NewGuid().ToString();
