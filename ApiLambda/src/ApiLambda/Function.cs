@@ -41,12 +41,18 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
     var calendarService = new GigCalendarService(await GetGoogleClient());
     var gigService = new GigService(repository, calendarService, logger);
     var gigController = new GigController(gigService, logger);
+    var statsService = new GigStatsService(repository);
+    var statsController = new StatsController(statsService, logger);
     
     try
     {
         if (request.Path.StartsWith("/mappings"))
         {
             return await gigController.GetMappingsAsync();
+        }
+        if (request.Path.StartsWith("/stats") && request.HttpMethod.Equals("GET", StringComparison.CurrentCultureIgnoreCase))
+        {
+            return await statsController.GetStatsAsync();
         }
         if (!request.Path.StartsWith("/gigs"))
         {
