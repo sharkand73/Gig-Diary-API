@@ -7,7 +7,7 @@ using ApiLambda.Services;
 namespace ApiLambda.Controllers;
 
 public class GigController(IGigService gigService, 
-    ILambdaLogger logger) : IGigController
+    ILambdaLogger logger) : ControllerBase, IGigController
 {
     public async Task<APIGatewayProxyResponse> GetGigAsync(string id)
     {
@@ -59,21 +59,5 @@ public class GigController(IGigService gigService,
         logger.LogInformation("GET MAPPINGS");
         var mappings = await gigService.GetMappings();
         return CreateCorsResponse(200, JsonSerializer.Serialize(mappings));
-    }
-
-    public APIGatewayProxyResponse CreateCorsResponse(int statusCode, string body)
-    {
-        return new APIGatewayProxyResponse
-        {
-            StatusCode = statusCode,
-            Body = body,
-            Headers = new Dictionary<string, string>
-            {
-                { "Access-Control-Allow-Origin", "*" },
-                { "Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token" },
-                { "Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS" },
-                { "Content-Type", "application/json" }
-            }
-        };
     }
 }
