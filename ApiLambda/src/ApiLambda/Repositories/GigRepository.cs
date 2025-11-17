@@ -32,11 +32,12 @@ public class GigRepository(IDynamoDBContext dynamoDbContext) : IGigRepository
         var filter = new ScanFilter();
         filter.AddCondition("LeaveDate", ScanOperator.Between, startDateString, endDateString);
 
-        return await dynamoDbContext.FromScanAsync<Gig>(new ScanOperationConfig
+        var gigs = await dynamoDbContext.FromScanAsync<Gig>(new ScanOperationConfig
         {
             Filter = filter,
             IndexName = "LeaveDate-Index"
         }).GetRemainingAsync();
+        return gigs.OrderBy(g => g.LeaveDate).ToList();
     }
     
     public async Task<Gig> CreateAsync(Gig gig)

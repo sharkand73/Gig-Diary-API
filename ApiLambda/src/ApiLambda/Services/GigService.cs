@@ -89,7 +89,10 @@ public class GigService(IGigRepository repository,
             .GroupBy(g => g.Act.Trim())
             .ToDictionary(
                 group => group.Key,
-                group => group.First().Contact
+                group => group
+                    .OrderByDescending(g => g.LeaveDate)
+                    .First()
+                    .Contact
             );
         
         var instruments = allGigs

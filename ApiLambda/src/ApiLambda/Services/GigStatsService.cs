@@ -6,26 +6,49 @@ namespace ApiLambda.Services;
 public class GigStatsService(IGigRepository repository) : IGigStatsService
 {
     private readonly DateRange _financialYear = GetCurrentFinancialYear();
-    
+
+    private readonly string[] _months =
+    [
+        "apr", "may", "jun", "jul", "aug", "sep", 
+        "oct", "nov", "dec", "jan", "feb", "mar"
+    ];
+
     public async Task<GigStats> GetGigStats()
     {
         var gigsThisYear = await repository.GetRange(_financialYear.Start, _financialYear.End);
-        var gigsByMonth = gigsThisYear
+        var gigsByNumMonth = gigsThisYear
             .GroupBy(GetGigMonth)
             .ToDictionary(group => group.Key, group => group.ToList());
-        var monthlyGigTally = gigsByMonth
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count)
-            .OrderBy(kvp => kvp.Key)
-            .ToList();
+        var gigTallyByNumMonth = gigsByNumMonth
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
+        var monthlyGigTally = new List<KeyValuePair<string, int>>();
+        foreach (var i in Enumerable.Range(1, 12))
+        {
+            if (gigTallyByNumMonth.TryGetValue(i, out var value))
+            {
+                monthlyGigTally.Add(new KeyValuePair<string, int>(_months[i-1], value));
+                continue;
+            }
+            monthlyGigTally.Add(new KeyValuePair<string, int>(_months[i-1], 0));
+        }
         var gigCount = gigsThisYear.Count;
-        var earningsByMonth = gigsByMonth
+        var earningsByNumMonth = gigsByNumMonth
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value
-                .Sum(g => g.Fee))
-            .OrderBy(kvp => kvp.Key)
-            .ToList();
-        var averageMonthly = earningsByMonth
+                .Sum(g => g.Fee));
+        var earningsByMonth = new List<KeyValuePair<string, decimal>>();
+
+        foreach (var i in Enumerable.Range(1, 12))
+        {
+            if (earningsByNumMonth.TryGetValue(i, out var value))
+            {
+                earningsByMonth.Add(new KeyValuePair<string, decimal>(_months[i-1], value));
+                continue;
+            }
+            earningsByMonth.Add(new KeyValuePair<string, decimal>(_months[i-1], 0));
+        }
+        var averageMonthly = earningsByNumMonth
             .Average(kvp => kvp.Value);
-        var earningsThisYear = earningsByMonth
+        var earningsThisYear = earningsByNumMonth
             .Sum(kvp => kvp.Value);
         var gigsByPayer = gigsThisYear
             .GroupBy(g => g.Contact)
@@ -35,7 +58,28 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Sum(g => g.Fee))
             .OrderByDescending(kvp => kvp.Value)
             .ToList();
+        var averageFee = gigsThisYear.Average(g => g.Fee);
+        var averageHourlyRate = gigsThisYear.Average(g => g.HourlyRate);
+        
+        var pastGigsThisYear = gigsThisYear
+            .Where(g => g.LeaveDate < DateTime.Now)
+            .ToList();
+        var averagePaymentTime = (decimal?) pastGigsThisYear
+            .Where(g => g.PaymentTime.HasValue)
+            .Average(g => g.PaymentTime);
+        var averageBookingToGigTime = (decimal) pastGigsThisYear.Average(g => g.BookingToGigTime);
 
+        var gapsBetweenGigs = new List<double>();
+        
+        for (var i = 1; i < pastGigsThisYear.Count; i++)
+        {
+            var currentGig = pastGigsThisYear[i];
+            var previousGig = pastGigsThisYear[i - 1];
+            gapsBetweenGigs.Add((currentGig.LeaveDate - previousGig.LeaveDate).TotalHours);
+        }
+        var averageGap = gapsBetweenGigs.Average();
+        var longestGap = gapsBetweenGigs.Max();
+        
         return new GigStats
         {
             GigCount = gigCount,
@@ -44,7 +88,15 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
             EarningsByMonth = earningsByMonth,
             AverageMonthly = Math.Round(averageMonthly, 2),
             PayerCount = payerCount,
-            EarningsByPayer = earningsByPayer
+            EarningsByPayer = earningsByPayer,
+            AverageFee = Math.Round(averageFee, 2),
+            AverageHourlyRate = Math.Round(averageHourlyRate, 2),
+            AveragePaymentTime = averagePaymentTime.HasValue 
+                ? Math.Round((decimal)averagePaymentTime, 1)
+                : null,
+            AverageBookingToGigTime = Math.Round(averageBookingToGigTime,1),
+            AverageTimeBetweenGigs = (decimal) Math.Round(averageGap / 24, 1),
+            LongestTimeBetweenGigs = (decimal) Math.Round(longestGap / 24, 1),
         };
     }
 

@@ -72,6 +72,25 @@ public record Gig
     [JsonPropertyName("isPaid")]
     public bool IsPaid => DatePaid.HasValue && DatePaid <= DateOnly.FromDateTime(DateTime.Today);
 
-    [DynamoDBIgnore] [JsonPropertyName("isNextGig")]
+    [DynamoDBIgnore]
+    [JsonPropertyName("isNextGig")]
     public bool IsNextGig { get; set; }
+
+    [DynamoDBIgnore]
+    [JsonPropertyName("paymentTime")]
+    public int? PaymentTime => DatePaid.HasValue
+        ? ((DateOnly)DatePaid).DayNumber - DateOnly.FromDateTime(LeaveDate).DayNumber
+        : null;
+    
+    [DynamoDBIgnore]
+    [JsonPropertyName("bookingToGigTime")]
+    public int BookingToGigTime => DateOnly.FromDateTime(LeaveDate).DayNumber - BookingDate.DayNumber;
+    
+    [DynamoDBIgnore]
+    [JsonPropertyName("gigLength")]
+    private decimal GigLength => (decimal) Math.Round((ReturnDate - LeaveDate).TotalHours, 1);
+    
+    [DynamoDBIgnore]
+    [JsonPropertyName("hourlyRate")]
+    public decimal HourlyRate => Math.Round(Fee / GigLength, 2);
 }
