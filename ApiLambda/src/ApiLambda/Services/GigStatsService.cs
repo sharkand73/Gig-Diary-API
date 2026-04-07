@@ -67,7 +67,7 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
         var averagePaymentTime = (decimal?) pastGigsThisYear
             .Where(g => g.PaymentTime.HasValue)
             .Average(g => g.PaymentTime);
-        var averageBookingToGigTime = (decimal) pastGigsThisYear.Average(g => g.BookingToGigTime);
+        var averageBookingToGigTime = (decimal?) pastGigsThisYear.Average(g => g.BookingToGigTime);
 
         var gapsBetweenGigs = new List<double>();
         
@@ -94,7 +94,7 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
             AveragePaymentTime = averagePaymentTime.HasValue 
                 ? Math.Round((decimal)averagePaymentTime, 1)
                 : null,
-            AverageBookingToGigTime = Math.Round(averageBookingToGigTime,1),
+            AverageBookingToGigTime = Math.Round(averageBookingToGigTime?? 0,1),
             AverageTimeBetweenGigs = (decimal) Math.Round(averageGap / 24, 1),
             LongestTimeBetweenGigs = (decimal) Math.Round(longestGap / 24, 1),
         };
