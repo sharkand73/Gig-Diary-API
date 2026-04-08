@@ -16,6 +16,17 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
     public async Task<GigStats> GetGigStats()
     {
         var gigsThisYear = await repository.GetRange(_financialYear.Start, _financialYear.End);
+        if (gigsThisYear.Count == 0)
+        {
+            return new GigStats
+            {
+                GigCount = gigsThisYear.Count,
+                MonthlyGigTally = _months.Select(m => new KeyValuePair<string, int>(m, 0)).ToList(),
+                EarningsByMonth = _months.Select(m => new KeyValuePair<string, decimal>(m, 0)).ToList(),
+                EarningsByPayer = []
+            };
+        }
+        
         var gigsByNumMonth = gigsThisYear
             .GroupBy(GetGigMonth)
             .ToDictionary(group => group.Key, group => group.ToList());
