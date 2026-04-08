@@ -16,16 +16,6 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
     public async Task<GigStats> GetGigStats()
     {
         var gigsThisYear = await repository.GetRange(_financialYear.Start, _financialYear.End);
-        if (gigsThisYear.Count == 0)
-        {
-            return new GigStats
-            {
-                GigCount = gigsThisYear.Count,
-                MonthlyGigTally = _months.Select(m => new KeyValuePair<string, int>(m, 0)).ToList(),
-                EarningsByMonth = _months.Select(m => new KeyValuePair<string, decimal>(m, 0)).ToList(),
-                EarningsByPayer = []
-            };
-        }
         
         var gigsByNumMonth = gigsThisYear
             .GroupBy(GetGigMonth)
@@ -72,9 +62,27 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
         var averageFee = gigsThisYear.Average(g => g.Fee);
         var averageHourlyRate = gigsThisYear.Average(g => g.HourlyRate);
         
+        var partialStats = new GigStats
+        {
+            GigCount = gigCount,
+            MonthlyGigTally = monthlyGigTally,
+            EarningsThisYear = earningsThisYear,
+            EarningsByMonth = earningsByMonth,
+            AverageMonthly = Math.Round(averageMonthly, 2),
+            PayerCount = payerCount,
+            EarningsByPayer = earningsByPayer,
+            AverageFee = Math.Round(averageFee, 2),
+            AverageHourlyRate = Math.Round(averageHourlyRate, 2)
+        };
+        
         var pastGigsThisYear = gigsThisYear
             .Where(g => g.LeaveDate < DateTime.Now)
             .ToList();
+        if (pastGigsThisYear.Count == 0)
+        {
+            return partialStats;
+        }
+        
         var averagePaymentTime = (decimal?) pastGigsThisYear
             .Where(g => g.PaymentTime.HasValue)
             .Average(g => g.PaymentTime);
@@ -91,17 +99,8 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
         var averageGap = gapsBetweenGigs.Average();
         var longestGap = gapsBetweenGigs.Max();
         
-        return new GigStats
+        return partialStats with
         {
-            GigCount = gigCount,
-            MonthlyGigTally = monthlyGigTally,
-            EarningsThisYear = earningsThisYear,
-            EarningsByMonth = earningsByMonth,
-            AverageMonthly = Math.Round(averageMonthly, 2),
-            PayerCount = payerCount,
-            EarningsByPayer = earningsByPayer,
-            AverageFee = Math.Round(averageFee, 2),
-            AverageHourlyRate = Math.Round(averageHourlyRate, 2),
             AveragePaymentTime = averagePaymentTime.HasValue 
                 ? Math.Round((decimal)averagePaymentTime, 1)
                 : null,
