@@ -4,5 +4,5 @@ namespace ApiLambda.Controllers;
 
 public interface IStatsController
 {
-    Task<APIGatewayProxyResponse> GetStatsAsync();
+    Task<APIGatewayProxyResponse> GetStatsAsync(string? pathVariable);
 }

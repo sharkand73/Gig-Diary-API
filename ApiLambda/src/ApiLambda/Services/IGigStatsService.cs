@@ -4,5 +4,5 @@ namespace ApiLambda.Services;
 
 public interface IGigStatsService
 {
-    public Task<GigStats> GetGigStats();
+    public Task<GigStats> GetGigStats(int? year = null);
 }

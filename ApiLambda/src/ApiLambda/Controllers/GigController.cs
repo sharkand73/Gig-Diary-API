@@ -1,13 +1,13 @@
 using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
-using Amazon.Lambda.Core;
 using ApiLambda.Models;
 using ApiLambda.Services;
+using Microsoft.Extensions.Logging;
 
 namespace ApiLambda.Controllers;
 
 public class GigController(IGigService gigService, 
-    ILambdaLogger logger) : ControllerBase, IGigController
+    ILogger<GigController> logger) : ControllerBase, IGigController
 {
     public async Task<APIGatewayProxyResponse> GetGigAsync(string id)
     {

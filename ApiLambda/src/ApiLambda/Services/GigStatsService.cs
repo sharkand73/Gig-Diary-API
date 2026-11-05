@@ -5,19 +5,20 @@ namespace ApiLambda.Services;
 
 public class GigStatsService(IGigRepository repository) : IGigStatsService
 {
-    private readonly DateRange _financialYear = GetCurrentFinancialYear();
-
     private readonly string[] _months =
     [
         "apr", "may", "jun", "jul", "aug", "sep", 
         "oct", "nov", "dec", "jan", "feb", "mar"
     ];
 
-    public async Task<GigStats> GetGigStats()
+    public async Task<GigStats> GetGigStats(int? year = null)
     {
-        var gigsThisYear = await repository.GetRange(_financialYear.Start, _financialYear.End);
+        var currentFinancialYear = GetCurrentFinancialYear();
+        var financialYear = GetFinancialYear(year);
         
-        var gigsByNumMonth = gigsThisYear
+        var gigsForTheYear = await repository.GetRange(financialYear.Start, financialYear.End);
+        
+        var gigsByNumMonth = gigsForTheYear
             .GroupBy(GetGigMonth)
             .ToDictionary(group => group.Key, group => group.ToList());
         var gigTallyByNumMonth = gigsByNumMonth
@@ -32,7 +33,7 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
             }
             monthlyGigTally.Add(new KeyValuePair<string, int>(_months[i-1], 0));
         }
-        var gigCount = gigsThisYear.Count;
+        var gigCount = gigsForTheYear.Count;
         var earningsByNumMonth = gigsByNumMonth
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value
                 .Sum(g => g.Fee));
@@ -51,7 +52,7 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
             .Average(kvp => kvp.Value);
         var earningsThisYear = earningsByNumMonth
             .Sum(kvp => kvp.Value);
-        var gigsByPayer = gigsThisYear
+        var gigsByPayer = gigsForTheYear
             .GroupBy(g => g.Contact)
             .ToDictionary(group => group.Key, group => group.ToList());
         var payerCount = gigsByPayer.Count;
@@ -59,8 +60,8 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Sum(g => g.Fee))
             .OrderByDescending(kvp => kvp.Value)
             .ToList();
-        var averageFee = gigsThisYear.Average(g => g.Fee);
-        var averageHourlyRate = gigsThisYear.Average(g => g.HourlyRate);
+        var averageFee = gigsForTheYear.Average(g => g.Fee);
+        var averageHourlyRate = gigsForTheYear.Average(g => g.HourlyRate);
         
         var partialStats = new GigStats
         {
@@ -74,26 +75,33 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
             AverageFee = Math.Round(averageFee, 2),
             AverageHourlyRate = Math.Round(averageHourlyRate, 2)
         };
+
+        var completedGigsBoundary = DateTime.UtcNow;
+        var endOfDay = new TimeOnly(23, 59, 59);
+        if (!financialYear.Equals(currentFinancialYear))
+        {
+            completedGigsBoundary = financialYear.End.ToDateTime(endOfDay);
+        }
         
-        var pastGigsThisYear = gigsThisYear
-            .Where(g => g.LeaveDate < DateTime.Now)
+        var completedGigsInYear = gigsForTheYear
+            .Where(g => g.LeaveDate < completedGigsBoundary)
             .ToList();
-        if (pastGigsThisYear.Count == 0)
+        if (completedGigsInYear.Count == 0)
         {
             return partialStats;
         }
         
-        var averagePaymentTime = (decimal?) pastGigsThisYear
+        var averagePaymentTime = (decimal?) completedGigsInYear
             .Where(g => g.PaymentTime.HasValue)
             .Average(g => g.PaymentTime);
-        var averageBookingToGigTime = (decimal?) pastGigsThisYear.Average(g => g.BookingToGigTime);
+        var averageBookingToGigTime = (decimal?) completedGigsInYear.Average(g => g.BookingToGigTime);
 
         var gapsBetweenGigs = new List<double>();
         
-        for (var i = 1; i < pastGigsThisYear.Count; i++)
+        for (var i = 1; i < completedGigsInYear.Count; i++)
         {
-            var currentGig = pastGigsThisYear[i];
-            var previousGig = pastGigsThisYear[i - 1];
+            var currentGig = completedGigsInYear[i];
+            var previousGig = completedGigsInYear[i - 1];
             gapsBetweenGigs.Add((currentGig.LeaveDate - previousGig.LeaveDate).TotalHours);
         }
         var averageGap = gapsBetweenGigs.Average();
@@ -122,6 +130,18 @@ public class GigStatsService(IGigRepository repository) : IGigStatsService
         return new DateRange(
             new DateOnly(startYear, 4, 6), 
             new DateOnly(startYear + 1, 4, 5)
+            );
+    }
+
+    private static DateRange GetFinancialYear(int? year)
+    {
+        if (!year.HasValue)
+        {
+            return GetCurrentFinancialYear();
+        }
+        return new DateRange(
+            new DateOnly(year.Value - 1, 4, 6), 
+            new DateOnly(year.Value, 4, 5)
             );
     }
 

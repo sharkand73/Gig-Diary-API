@@ -1,23 +1,26 @@
 using System.Text.Json;
-using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
-using Amazon.SimpleSystemsManagement;
-using Amazon.SimpleSystemsManagement.Model;
 using ApiLambda.Controllers;
-using ApiLambda.Repositories;
+using ApiLambda.DependencyInjection;
 using ApiLambda.Services;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Calendar.v3;
-using Google.Apis.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
 
 // Configure services
-var dynamoDbContext = new DynamoDBContextBuilder()
-    .WithDynamoDBClient(() => new AmazonDynamoDBClient())
-    .Build();
+
+var services = new ServiceCollection();
+services.AddLogging(builder => builder.AddLambdaLogger(Logging.Options));
+services.AddApiLambda();
+var sp = services.BuildServiceProvider();
+var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+var logger = loggerFactory.CreateLogger("ApiLambda");
+var gigController = sp.GetRequiredService<GigController>();
+var statsController = sp.GetRequiredService<StatsController>();
+
 
 await LambdaBootstrapBuilder.Create(async (Stream stream, ILambdaContext context) =>
     {
@@ -36,35 +39,31 @@ return;
 
 async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILambdaContext context)
 {
-    var logger = context.Logger;
-    var repository = new GigRepository(dynamoDbContext);
-    var calendarService = new GigCalendarService(await GetGoogleClient());
-    var gigService = new GigService(repository, calendarService, logger);
-    var gigController = new GigController(gigService, logger);
-    var statsService = new GigStatsService(repository);
-    var statsController = new StatsController(statsService, logger);
-    
+    var path = request.Path.ToLower();
+    var method = request.HttpMethod.ToUpper();
     try
     {
-        if (request.Path.StartsWith("/mappings"))
+        if (path.StartsWith("/mappings"))
         {
             return await gigController.GetMappingsAsync();
         }
-        if (request.Path.StartsWith("/stats") && request.HttpMethod.Equals("GET", StringComparison.CurrentCultureIgnoreCase))
+        if (path.StartsWith("/stats") && method == "GET")
         {
-            return await statsController.GetStatsAsync();
+            var pathVariable = path.Split('/').Last();
+            pathVariable = pathVariable == "stats" ? null : pathVariable;
+            return await statsController.GetStatsAsync(pathVariable);
         }
-        if (!request.Path.StartsWith("/gigs"))
+        if (!path.StartsWith("/gigs"))
         {
             return new APIGatewayProxyResponse { StatusCode = 404, Body = "Not found" };
         }
         
         // Extract ID from path manually
-        var pathParts = request.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var pathParts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
         var hasId = pathParts.Length > 1;
         var id = hasId ? pathParts[1] : null;
 
-        return request.HttpMethod.ToUpper() switch
+        return method switch
         {
             "OPTIONS" => gigController.CreateCorsResponse(200, ""),
             "GET" when hasId => await gigController.GetGigAsync(id!),
@@ -77,34 +76,8 @@ async Task<APIGatewayProxyResponse> Handler(APIGatewayProxyRequest request, ILam
     }
     catch (Exception ex)
     {
-        logger.LogError($"Error: {ex}");
+        logger.LogError(ex, "Error.");
         return gigController.CreateCorsResponse(500, "Internal server error");
     }
-}
-
-async Task<CalendarService> GetGoogleClient()
-{
-    var credentialJson = await GetCredentialJson();
-    var credential = GoogleCredential
-        .FromJson(credentialJson)
-        .CreateScoped(CalendarService.Scope.Calendar);
-
-    return new CalendarService(new BaseClientService.Initializer()
-    {
-        HttpClientInitializer = credential
-    });
-}
-
-async Task<string> GetCredentialJson()
-{
-    var request = new GetParameterRequest()
-    {
-        Name = "GigDiaryGoogleConfig",
-        WithDecryption = true
-    };
-    using var client = new AmazonSimpleSystemsManagementClient();
-    var response = await client.GetParameterAsync(request);
-    return response.Parameter.Value
-        ?? throw new FormatException("GigDiaryGoogleConfig was null");
 }
 
